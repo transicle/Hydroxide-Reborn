@@ -162,11 +162,44 @@ function Log.new(localScript)
                 createConstant(i, v)
             end
 
-            -- for i,v in pairs(localScript.Environment) do
-            --     createEnvironment(i, v)
-            -- end
-
-            -- script decompilation here
+            -- Script decompilation
+            local sourceScroll = InfoSource:FindFirstChildWhichIsA("ScrollingFrame")
+            local sourceLabel = sourceScroll and sourceScroll:FindFirstChildWhichIsA("TextLabel")
+            if not sourceLabel then
+                if not sourceScroll then
+                    sourceScroll = Instance.new("ScrollingFrame")
+                    sourceScroll.Size = UDim2.new(1, 0, 1, 0)
+                    sourceScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                    sourceScroll.BorderSizePixel = 0
+                    sourceScroll.ScrollBarThickness = 4
+                    sourceScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    sourceScroll.Parent = InfoSource
+                end
+                sourceLabel = Instance.new("TextLabel")
+                sourceLabel.Size = UDim2.new(1, -8, 0, 0)
+                sourceLabel.AutomaticSize = Enum.AutomaticSize.Y
+                sourceLabel.Position = UDim2.new(0, 4, 0, 4)
+                sourceLabel.BackgroundTransparency = 1
+                sourceLabel.Font = Enum.Font.Code
+                sourceLabel.TextSize = 12
+                sourceLabel.TextColor3 = Color3.new(1, 1, 1)
+                sourceLabel.TextXAlignment = Enum.TextXAlignment.Left
+                sourceLabel.TextWrapped = false
+                sourceLabel.RichText = false
+                sourceLabel.Parent = sourceScroll
+            end
+            if decompile then
+                local ok, result = pcall(decompile, scriptInstance)
+                if ok and result and #result > 0 then
+                    sourceLabel.Text = result
+                elseif ok then
+                    sourceLabel.Text = "-- Decompilation returned empty result"
+                else
+                    sourceLabel.Text = "-- Decompile error: " .. tostring(result)
+                end
+            else
+                sourceLabel.Text = "-- decompile() not supported by your executor"
+            end
 
             selected.scriptLog = log
         end

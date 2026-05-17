@@ -103,6 +103,7 @@ local callingScriptContext = ContextMenuButton.new("rbxassetid://4800244808", "G
 local spyClosureContext = ContextMenuButton.new("rbxassetid://4666593447", "Spy Calling Function")
 local repeatCallContext = ContextMenuButton.new("rbxassetid://4907151581", "Repeat Call")
 local viewAsHexContext = ContextMenuButton.new("rbxassetid://9058292613", "Toggle String Hex View")
+local exportContext = ContextMenuButton.new("rbxassetid://4800244808", "Export Logs")
 
 local removeConditionContext = ContextMenuButton.new("rbxassetid://4702831188", "Remove Condition")
 
@@ -118,7 +119,7 @@ local removeConditionContextSelected = ContextMenuButton.new("rbxassetid://47028
 
 local remoteListMenu = ContextMenu.new({ pathContext, conditionContext, clearContext, ignoreContext, blockContext, removeContext })
 local remoteListMenuSelected = ContextMenu.new({ pathContextSelected, clearContextSelected, ignoreContextSelected, unignoreContextSelected, blockContextSelected, unblockContextSelected, removeContextSelected })
-local remoteLogsMenu = ContextMenu.new({ scriptContext, callingScriptContext, spyClosureContext, repeatCallContext, viewAsHexContext })
+local remoteLogsMenu = ContextMenu.new({ scriptContext, callingScriptContext, spyClosureContext, repeatCallContext, viewAsHexContext, exportContext })
 local remoteConditionMenu = ContextMenu.new({ removeConditionContext })
 local remoteConditionMenuSelected = ContextMenu.new({ removeConditionContextSelected })
 
@@ -299,8 +300,10 @@ function Log.new(remote)
         
         selected.remoteLog = log
 
-        for _i, call in pairs(remote.Logs) do
-            ArgsLog.new(log, call)
+        local prevArgs = nil
+        for _, call in ipairs(remote.Logs) do
+            ArgsLog.new(log, call, prevArgs)
+            prevArgs = call.args
         end
 
         checkCurrentBlocked()
@@ -329,6 +332,8 @@ function Log.new(remote)
         RemoteList.Visible = false
         RemoteLogs.Visible = true
     end)
+
+    log.PrevArgs = nil
 
     listButton:SetRightCallback(function()
         ignoreContext:SetIcon((remote.Ignored and icons.unignore) or icons.ignore)
@@ -384,7 +389,7 @@ local function createArg(instance, index, value)
     return arg.AbsoluteSize.Y + 5
 end
 
-function ArgsLog.new(log, callInfo)
+function ArgsLog.new(log, callInfo, prevArgs)
     local instance = Assets.CallPod:Clone()
     local args = callInfo.args
 
@@ -392,8 +397,24 @@ function ArgsLog.new(log, callInfo)
         instance.Visible = false
     end
 
+    -- Timestamp label
+    if callInfo.time then
+        local tl = Instance.new("TextLabel")
+        tl.Name = "_time"
+        tl.Size = UDim2.new(1, -8, 0, 14)
+        tl.Position = UDim2.new(0, 4, 0, 0)
+        tl.BackgroundTransparency = 1
+        tl.Font = Enum.Font.SourceSansBold
+        tl.TextSize = 11
+        tl.TextColor3 = Color3.fromRGB(120, 180, 120)
+        tl.TextXAlignment = Enum.TextXAlignment.Left
+        tl.ZIndex = 2
+        tl.Text = string.format("t+%.3fs", callInfo.time)
+        tl.Parent = instance.Contents
+    end
+
     local button = ListButton.new(instance, remoteLogs)
-    local height = 0
+    local height = callInfo.time and 16 or 0
 
     if #args == 0 then
         height = height + createArg(instance, 1, nil)
@@ -401,6 +422,27 @@ function ArgsLog.new(log, callInfo)
         for i = 1, #args do
             local v = args[i]
             height = height + createArg(instance, i, v)
+        end
+    end
+
+    -- Argument diff highlighting
+    if prevArgs and #prevArgs > 0 then
+        local contents = instance.Contents
+        for i, arg in ipairs(args) do
+            local argFrame = contents:FindFirstChild(tostring(i))
+            if argFrame then
+                if prevArgs[i] ~= arg then
+                    argFrame.BackgroundColor3 = Color3.fromRGB(60, 40, 10)
+                    argFrame.BackgroundTransparency = 0
+                end
+            end
+        end
+        for i = #prevArgs + 1, #args do
+            local argFrame = contents:FindFirstChild(tostring(i))
+            if argFrame then
+                argFrame.BackgroundColor3 = Color3.fromRGB(20, 50, 20)
+                argFrame.BackgroundTransparency = 0
+            end
         end
     end
 
@@ -453,6 +495,7 @@ function Log.clear(log)
     end
 
     logInstance.Calls.Text = 0
+    log.PrevArgs = nil
     log:Adjust()
 end
 
@@ -466,9 +509,10 @@ function Log.incrementCalls(log, callInfo)
     log:Adjust()
     
     if selected.remoteLog == log then
-        ArgsLog.new(log, callInfo)
+        ArgsLog.new(log, callInfo, log.PrevArgs)
         remoteLogs:Recalculate()
     end
+    log.PrevArgs = callInfo.args
 end
 
 function Log.decrementCalls(log, args)
@@ -510,16 +554,18 @@ for _i,flag in pairs(ListFlags:GetChildren()) do
     end
 end
 
-ListSearch.FocusLost:Connect(function(returned)
-    if returned then
+local searchTask = nil
+ListSearch:GetPropertyChangedSignal("Text"):Connect(function()
+    if searchTask then task.cancel(searchTask) end
+    searchTask = task.delay(0.15, function()
+        local query = ListSearch.Text:lower()
         for remoteInstance, log in pairs(currentLogs) do
             local instance = log.Button.Instance
-            instance.Visible = not (instance.Visible and not remoteInstance.Name:lower():find(ListSearch.Text))
+            instance.Visible = remotesViewing[remoteInstance.ClassName] and
+                (query == "" or remoteInstance.Name:lower():find(query, 1, true) ~= nil)
         end
-
         remoteList:Recalculate()
-        ListSearch.Text = ""
-    end
+    end)
 end)
 
 ListRefresh.MouseButton1Click:Connect(function()
@@ -965,6 +1011,34 @@ removeConditionContextSelected:SetCallback(function()
     end
 
     selected.conditions = {}
+end)
+
+exportContext:SetCallback(function()
+    if not writeFile then
+        return MessageBox.Show("Error", "writeFile is not available in your executor", MessageType.OK)
+    end
+    local remote = selected.remoteLog.Remote
+    local remoteInstance = remote.Instance
+    if makefolder then
+        pcall(makefolder, "hydroxide")
+        pcall(makefolder, "hydroxide/logs")
+    end
+    local filename = "hydroxide/logs/" .. remoteInstance.Name .. "_" .. os.time() .. ".lua"
+    local out = "-- Hydroxide export: " .. getInstancePath(remoteInstance) .. "\nreturn {\n"
+    for i, call in ipairs(remote.Logs) do
+        out = out .. string.format("    [%d] = { time = %.4f, args = {", i, call.time or 0)
+        for j, arg in ipairs(call.args) do
+            out = out .. " [" .. j .. "] = " .. dataToString(arg) .. ","
+        end
+        out = out .. " } },\n"
+    end
+    out = out .. "}\n"
+    local ok, err = pcall(writeFile, filename, out)
+    if ok then
+        MessageBox.Show("Exported", "Saved to " .. filename, MessageType.OK)
+    else
+        MessageBox.Show("Error", tostring(err), MessageType.OK)
+    end
 end)
 
 conditionStatus:SetCallback(function(_dropdown, selected)

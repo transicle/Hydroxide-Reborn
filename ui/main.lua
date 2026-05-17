@@ -8,6 +8,55 @@ if oh.Cache["ui/main"] then
 	return Interface
 end
 
+-- Change title from "Hydroxide c.1" to "[REBORN] Hydroxide c.2"
+for _, desc in ipairs(Interface:GetDescendants()) do
+	if desc:IsA("TextLabel") or desc:IsA("TextButton") then
+		if desc.Text:find("Hydroxide") then
+			desc.Text = desc.Text:gsub("Hydroxide c%.1", "[REBORN] Hydroxide c.2")
+								   :gsub("^Hydroxide$", "[REBORN] Hydroxide c.2")
+		end
+	end
+end
+
+-- Create new tabs and blank pages BEFORE TabSelector initialises its click handlers
+do
+	local Tabs  = Interface.Base.Tabs.Container
+	local Pages = Interface.Base.Body.Pages
+
+	local function addTab(name, iconId)
+		if Tabs:FindFirstChild(name) then return end
+		local template = Tabs:FindFirstChildWhichIsA("ImageButton")
+		if not template then return end
+		local btn = template:Clone()
+		btn.Name = name
+		btn.Icon.Image = iconId
+		btn.ImageColor3 = Color3.fromRGB(20, 20, 20)
+		btn.Icon.ImageColor3 = Color3.fromRGB(127, 127, 127)
+		btn.Parent = Tabs
+	end
+
+	local function addPage(name)
+		if Pages:FindFirstChild(name) then return end
+		local page = Instance.new("Frame")
+		page.Name = name
+		page.Size = UDim2.new(1, 0, 1, 0)
+		page.BackgroundTransparency = 1
+		page.Visible = false
+		page.Parent = Pages
+	end
+
+	-- Explorer: script-like icon; HttpSpy: RemoteEvent icon; WebSocketSpy: function icon; AntiCheat: block icon
+	addTab("Explorer",      "rbxassetid://4800244808")
+	addTab("HttpSpy",       "rbxassetid://4229806545")
+	addTab("WebSocketSpy",  "rbxassetid://4666593447")
+	addTab("AntiCheat",     "rbxassetid://4891641806")
+
+	addPage("Explorer")
+	addPage("HttpSpy")
+	addPage("WebSocketSpy")
+	addPage("AntiCheat")
+end
+
 import("ui/controls/TabSelector")
 local MessageBox, MessageType = import("ui/controls/MessageBox")
 
@@ -17,6 +66,10 @@ local ScriptScanner
 local ModuleScanner
 local UpvalueScanner
 local ConstantScanner
+local ExplorerUI
+local HttpSpyUI
+local WebSocketSpyUI
+local AntiCheatUI
 
 xpcall(function()
 	RemoteSpy = import("ui/modules/RemoteSpy")
@@ -25,6 +78,10 @@ xpcall(function()
 	ModuleScanner = import("ui/modules/ModuleScanner")
 	UpvalueScanner = import("ui/modules/UpvalueScanner")
 	ConstantScanner = import("ui/modules/ConstantScanner")
+	ExplorerUI = import("ui/modules/Explorer")
+	HttpSpyUI = import("ui/modules/HttpSpy")
+	WebSocketSpyUI = import("ui/modules/WebSocketSpy")
+	AntiCheatUI = import("ui/modules/AntiCheat")
 end, function(err)
 	local message
 	if err:find("valid member") then
@@ -101,8 +158,10 @@ Interface.Name = HttpService:GenerateGUID(false)
 if getHui then
 	Interface.Parent = getHui()
 else
-	if syn then
-		syn.protect_gui(Interface)
+	if protectgui then
+		protectgui(Interface)
+	elseif gethui then
+		Interface.Parent = gethui()
 	end
 
 	Interface.Parent = CoreGui

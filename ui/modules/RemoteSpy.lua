@@ -146,14 +146,14 @@ local function checkCurrentBlocked()
 end
 
 local Condition = {}
-function Condition.new(remote, status, index, value, type)
+function Condition.new(remote, status, index, value, condType)
     local condition = {}
     local instance = Assets.ConditionPod:Clone() 
     local content = instance.Content
     local identifiers = instance.Identifiers
     local button = ListButton.new(instance, remoteConditions)
     local check = CheckBox.new(content.Toggle)
-    local valueType = type or typeof(value)
+    local valueType = condType or typeof(value)
     local typeIcons = oh.Constants.Types
     local branch = (status == "Ignore" and remote.IgnoredArgs[index]) or remote.BlockedArgs[index]
 
@@ -161,7 +161,7 @@ function Condition.new(remote, status, index, value, type)
     condition.Status = status
     condition.Index = index
     condition.Value = value
-    condition.Type = type
+    condition.Type = condType
     condition.Remote = remote
     condition.Enabled = true
     condition.Instance = instance
@@ -187,12 +187,12 @@ function Condition.new(remote, status, index, value, type)
         instance.Identifiers.ByType.Visible = false
     end 
     
-    identifiers.ByType.Visible = type ~= nil
+    identifiers.ByType.Visible = condType ~= nil
     identifiers.Status.Image = (status == "Ignore" and icons.ignore) or icons.block
     identifiers.Status.Border.Image = identifiers.Status.Image
 
     content.Index.Text = index
-    content.Label.Text = (type and valueType) or toString(value)
+    content.Label.Text = (condType and valueType) or toString(value)
     content.Label.TextColor3 = oh.Constants.Syntax[valueType] or oh.Constants.Syntax["userdata"]
     content.Type.Image = typeIcons[valueType] or typeIcons["userdata"]
 
@@ -245,8 +245,8 @@ local function createConditions(remote)
     ConditionsRemote.Position = UDim2.new(1, -nameLength, 0, 0)
 
     for index, arg in pairs(remote.IgnoredArgs) do
-        for type in pairs(arg.types) do
-            Condition.new(remote, "Ignore", index, nil, type)
+        for condType in pairs(arg.types) do
+            Condition.new(remote, "Ignore", index, nil, condType)
         end
 
         for value in pairs(arg.values) do
@@ -255,8 +255,8 @@ local function createConditions(remote)
     end
 
     for index, arg in pairs(remote.BlockedArgs) do
-        for type in pairs(arg.types) do
-            Condition.new(remote, "Block", index, nil, type)
+        for condType in pairs(arg.types) do
+            Condition.new(remote, "Block", index, nil, condType)
         end
 
         for value in pairs(arg.values) do
@@ -639,26 +639,26 @@ NewConditionButtons.Add.MouseButton1Click:Connect(function()
     end
 
     local status = conditionStatus.Selected.Name
-    local type = conditionType.Selected.Name
+    local condType = conditionType.Selected.Name
     local valueType = conditionValueType.Selected.Name
     local value = NewConditionContent.Value.Input.Text
 
     if status ~= "Ignore" and status ~= "Block" then
         MessageBox.Show("Error", "Invalid condition status", MessageType.OK)
-    elseif not oh.Constants.Types[type] and not isUserdata(type) then
+    elseif not oh.Constants.Types[condType] and not isUserdata(condType) then
         MessageBox.Show("Error", "Invalid condition type", MessageType.OK)
     elseif valueType ~= "Value" and valueType ~= "Type" then
         MessageBox.Show("Error", "Invalid condition value association", MessageType.OK)
     elseif valueType == "Value" then
-        if type == "string" then
+        if condType == "string" then
             value = toString(value)
-        elseif type == "number" then
+        elseif condType == "number" then
             value = tonumber(value)
 
             if not value then
                 return MessageBox.Show("Error", "Your input does not match the type you selected", MessageType.OK)
             end
-        elseif type == "boolean" then
+        elseif condType == "boolean" then
             if value == "true" then
                 value = true
             elseif value == "false" then
@@ -694,7 +694,7 @@ NewConditionButtons.Add.MouseButton1Click:Connect(function()
     end
 
     if byType then
-        Condition.new(selectedRemote, status, argIndex, nil, value)
+        Condition.new(selectedRemote, status, argIndex, nil, condType)
     else
         Condition.new(selectedRemote, status, argIndex, value)
     end

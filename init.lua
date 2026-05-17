@@ -245,18 +245,20 @@ if readFile and writeFile then
                 return unpack(importCache[asset])
             end
 
+            local assets
+
             if asset:find("rbxassetid://") then
                 assets = { game:GetObjects(asset)[1] }
             elseif web then
                 local file = (hasFolderFunctions and "hydroxide/user/" .. user .. '/' .. asset .. ".lua") or ("hydroxide-" .. user .. '-' .. asset:gsub('/', '-') .. ".lua")
-                local ran, result = pcall(readFile, file)
+                local fileRan, fileResult = pcall(readFile, file)
                 local content
 
-                if not ran then
+                if fileRan and fileResult and #fileResult > 0 then
+                    content = fileResult
+                else
                     content = game:HttpGetAsync("https://raw.githubusercontent.com/" .. user .. "/Hydroxide-Reborn/" .. branch .. '/' .. asset .. ".lua")
                     writeFile(file, content)
-                else
-                    content = result
                 end
 
                 assets = { loadstring(content, asset .. '.lua')() }

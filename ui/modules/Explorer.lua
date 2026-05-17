@@ -8,6 +8,7 @@ if not Page then return Explorer end
 
 local expanded = {}
 local rowCount = 0
+local rowMeta = {} -- maps Frame -> { instance, depth }
 
 -- Scroll area
 local scroll = Instance.new("ScrollingFrame")
@@ -77,7 +78,10 @@ end
 
 local function clearList()
     for _, child in ipairs(scroll:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
+        if child:IsA("Frame") then
+            rowMeta[child] = nil
+            child:Destroy()
+        end
     end
     rowCount = 0
     expanded = {}
@@ -94,8 +98,7 @@ local function addRow(instance, depth, after)
     row.BorderSizePixel = 0
     row.LayoutOrder = order
     row.Parent = scroll
-    row._instance = instance
-    row._depth = depth
+    rowMeta[row] = { instance = instance, depth = depth }
 
     local indent = depth * 12
 

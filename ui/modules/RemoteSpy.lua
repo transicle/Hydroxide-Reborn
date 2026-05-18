@@ -411,6 +411,40 @@ function Log.new(remote)
     return log
 end
 
+-- Rounds a float to 3 decimal places and strips trailing zeros/dot.
+local function rn(n)
+    return (string.format("%.3f", n):gsub("%.?0+$", ""))
+end
+
+-- Pretty-prints a value for display in an arg row (display-only; does not
+-- affect script generation). Rounds floats, collapses CFrame rotation when
+-- it is the identity matrix, etc.
+local function formatArgDisplay(value)
+    local vtype = typeof(value)
+
+    if vtype == "CFrame" then
+        local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = value:GetComponents()
+        local eps = 0.0001
+        local isIdentity = math.abs(r00-1) < eps and math.abs(r01) < eps and math.abs(r02) < eps
+                       and math.abs(r10)   < eps and math.abs(r11-1) < eps and math.abs(r12) < eps
+                       and math.abs(r20)   < eps and math.abs(r21)   < eps and math.abs(r22-1) < eps
+        local pos = rn(x) .. ", " .. rn(y) .. ", " .. rn(z)
+        return "CFrame.new(" .. pos .. (isIdentity and ")" or ", ...)")
+
+    elseif vtype == "Vector3" then
+        return "Vector3.new(" .. rn(value.X) .. ", " .. rn(value.Y) .. ", " .. rn(value.Z) .. ")"
+
+    elseif vtype == "Vector2" then
+        return "Vector2.new(" .. rn(value.X) .. ", " .. rn(value.Y) .. ")"
+
+    elseif type(value) == "number" then
+        return rn(value)
+
+    else
+        return dataToString(value)
+    end
+end
+
 local function createArg(instance, index, value)
     local arg = Assets.RemoteArg:Clone()
     local valueType = type(value)
@@ -421,7 +455,7 @@ local function createArg(instance, index, value)
     if valueType == "table" then
         arg.Label.Text = toString(value)
     else
-        arg.Label.Text = dataToString(value)
+        arg.Label.Text = formatArgDisplay(value)
     end
     
     arg.Label.TextColor3 = oh.Constants.Syntax[valueType]

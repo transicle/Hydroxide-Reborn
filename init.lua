@@ -145,28 +145,6 @@ environment.oh = {
     end
 }
 
-if getConnections then 
-    for __, connection in pairs(getConnections(game:GetService("ScriptContext").Error)) do
-
-        local conn = getrawmetatable(connection)
-        local old = conn and conn.__index
-        
-        setReadOnly(conn, false)
-        
-        if old then
-            conn.__index = newcclosure(function(t, k)
-                if k == "Connected" then
-                    return true
-                end
-                return old(t, k)
-            end)
-        end
-
-        setReadOnly(conn, true)
-        connection:Disable()
-    end
-end
-
 useMethods(globalMethods)
 
 local HttpService = game:GetService("HttpService")
@@ -298,7 +276,5 @@ useMethods(import("methods/string"))
 useMethods(import("methods/table"))
 useMethods(import("methods/userdata"))
 useMethods(import("methods/environment"))
-
-import("modules/AntiCheat")
 
 import("ui/main")

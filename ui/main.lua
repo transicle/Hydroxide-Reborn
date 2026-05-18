@@ -45,16 +45,14 @@ do
 		page.Parent = Pages
 	end
 
-	-- Explorer: script-like icon; HttpSpy: cloud icon; WebSocketSpy: function icon; AntiCheat: block icon
+	-- Explorer: script-like icon; HttpSpy: cloud icon; WebSocketSpy: function icon
 	addTab("Explorer",      "rbxassetid://4800244808")
 	addTab("HttpSpy",       "rbxassetid://7072706620")
 	addTab("WebSocketSpy",  "rbxassetid://4666593447")
-	addTab("AntiCheat",     "rbxassetid://4891641806")
 
 	addPage("Explorer")
 	addPage("HttpSpy")
 	addPage("WebSocketSpy")
-	addPage("AntiCheat")
 
 	-- Convert sidebar tab container to ScrollingFrame so all tabs are reachable
 	local sf = Instance.new("ScrollingFrame")
@@ -88,8 +86,6 @@ local ConstantScanner
 local ExplorerUI
 local HttpSpyUI
 local WebSocketSpyUI
-local AntiCheatUI
-
 xpcall(function()
 	RemoteSpy = import("ui/modules/RemoteSpy")
 	ClosureSpy = import("ui/modules/ClosureSpy")
@@ -100,7 +96,6 @@ xpcall(function()
 	ExplorerUI = import("ui/modules/Explorer")
 	HttpSpyUI = import("ui/modules/HttpSpy")
 	WebSocketSpyUI = import("ui/modules/WebSocketSpy")
-	AntiCheatUI = import("ui/modules/AntiCheat")
 end, function(err)
 	local message
 	if err:find("valid member") then

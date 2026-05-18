@@ -384,50 +384,60 @@ local function createArg(instance, index, value)
     
     arg.Label.TextColor3 = oh.Constants.Syntax[valueType]
     arg.Name = tostring(index)
+    arg.LayoutOrder = index
     arg.Parent = instance.Contents
-
-    return arg.Size.Y.Offset + 5
 end
 
 function ArgsLog.new(log, callInfo, prevArgs)
     local instance = Assets.CallPod:Clone()
     local args = callInfo.args
+    local contents = instance.Contents
 
     if selected.remoteLog ~= log then
         instance.Visible = false
     end
+
+    -- Ensure a layout exists so AutomaticSize stacks children correctly
+    if not contents:FindFirstChildOfClass("UIListLayout") then
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 2)
+        layout.Parent = contents
+    end
+
+    -- Let the pod shrink/grow to exactly fit its args — no manual maths needed
+    instance.Size = UDim2.new(instance.Size.X.Scale, instance.Size.X.Offset, 0, 0)
+    instance.AutomaticSize = Enum.AutomaticSize.Y
+    contents.AutomaticSize = Enum.AutomaticSize.Y
 
     -- Timestamp label
     if callInfo.time then
         local tl = Instance.new("TextLabel")
         tl.Name = "_time"
         tl.Size = UDim2.new(1, -8, 0, 14)
-        tl.Position = UDim2.new(0, 4, 0, 0)
         tl.BackgroundTransparency = 1
         tl.Font = Enum.Font.SourceSansBold
         tl.TextSize = 11
         tl.TextColor3 = Color3.fromRGB(120, 180, 120)
         tl.TextXAlignment = Enum.TextXAlignment.Left
         tl.ZIndex = 2
+        tl.LayoutOrder = 0
         tl.Text = string.format("t+%.3fs", callInfo.time)
-        tl.Parent = instance.Contents
+        tl.Parent = contents
     end
 
     local button = ListButton.new(instance, remoteLogs)
-    local height = callInfo.time and 16 or 0
 
     if #args == 0 then
-        height = height + createArg(instance, 1, nil)
+        createArg(instance, 1, nil)
     else
         for i = 1, #args do
-            local v = args[i]
-            height = height + createArg(instance, i, v)
+            createArg(instance, i, args[i])
         end
     end
 
     -- Argument diff highlighting
     if prevArgs and #prevArgs > 0 then
-        local contents = instance.Contents
         for i, arg in ipairs(args) do
             local argFrame = contents:FindFirstChild(tostring(i))
             if argFrame then
@@ -453,9 +463,7 @@ function ArgsLog.new(log, callInfo, prevArgs)
         selected.callPodButton = button
     end)
 
-    button.Instance.Size = button.Instance.Size + UDim2.new(0, 0, 0, height)
-
-    return button 
+    return button
 end
 
 function Log.playIgnore(log)

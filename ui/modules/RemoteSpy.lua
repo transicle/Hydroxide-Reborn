@@ -477,8 +477,12 @@ function ArgsLog.new(log, callInfo, prevArgs)
     for _, child in ipairs(contents:GetChildren()) do
         if child:IsA("UIListLayout") or child:IsA("UIPadding") then child:Destroy() end
     end
+    -- Remove decorative GUI children from the CallPod itself (separator bars,
+    -- header frames, etc.) — we only want Contents.
     for _, child in ipairs(instance:GetChildren()) do
-        if child:IsA("UIPadding") then child:Destroy() end
+        if child.Name ~= "Contents" and child:IsA("GuiObject") then
+            child:Destroy()
+        end
     end
     local layout = Instance.new("UIListLayout")
     layout.FillDirection = Enum.FillDirection.Vertical

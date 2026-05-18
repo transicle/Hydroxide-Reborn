@@ -386,7 +386,7 @@ local function createArg(instance, index, value)
     arg.Name = tostring(index)
     arg.Parent = instance.Contents
 
-    return arg.AbsoluteSize.Y + 5
+    return arg.Size.Y.Offset + 5
 end
 
 function ArgsLog.new(log, callInfo, prevArgs)

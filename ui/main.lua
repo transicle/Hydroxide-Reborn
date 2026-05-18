@@ -45,9 +45,9 @@ do
 		page.Parent = Pages
 	end
 
-	-- Explorer: script-like icon; HttpSpy: RemoteEvent icon; WebSocketSpy: function icon; AntiCheat: block icon
+	-- Explorer: script-like icon; HttpSpy: cloud icon; WebSocketSpy: function icon; AntiCheat: block icon
 	addTab("Explorer",      "rbxassetid://4800244808")
-	addTab("HttpSpy",       "rbxassetid://4229806545")
+	addTab("HttpSpy",       "rbxassetid://7072706620")
 	addTab("WebSocketSpy",  "rbxassetid://4666593447")
 	addTab("AntiCheat",     "rbxassetid://4891641806")
 
@@ -55,6 +55,25 @@ do
 	addPage("HttpSpy")
 	addPage("WebSocketSpy")
 	addPage("AntiCheat")
+
+	-- Convert sidebar tab container to ScrollingFrame so all tabs are reachable
+	local sf = Instance.new("ScrollingFrame")
+	sf.Name                = Tabs.Name
+	sf.Size                = Tabs.Size
+	sf.Position            = Tabs.Position
+	sf.BackgroundColor3    = Tabs.BackgroundColor3
+	sf.BackgroundTransparency = Tabs.BackgroundTransparency
+	sf.BorderSizePixel     = 0
+	sf.ScrollBarThickness  = 2
+	sf.ScrollingDirection  = Enum.ScrollingDirection.Y
+	sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	sf.CanvasSize          = UDim2.new(0, 0, 0, 0)
+	sf.Parent              = Tabs.Parent
+
+	for _, child in ipairs(Tabs:GetChildren()) do
+		child.Parent = sf
+	end
+	Tabs:Destroy()
 end
 
 import("ui/controls/TabSelector")

@@ -408,6 +408,8 @@ function ArgsLog.new(log, callInfo, prevArgs)
     -- Let the pod shrink/grow to exactly fit its args — no manual maths needed
     instance.Size = UDim2.new(instance.Size.X.Scale, instance.Size.X.Offset, 0, 0)
     instance.AutomaticSize = Enum.AutomaticSize.Y
+    contents.Position = UDim2.new(0, 0, 0, 0)
+    contents.Size = UDim2.new(1, 0, 0, 0)
     contents.AutomaticSize = Enum.AutomaticSize.Y
 
     -- Timestamp label

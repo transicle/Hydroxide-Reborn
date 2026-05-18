@@ -21,6 +21,48 @@ local TabSelector = import("ui/controls/TabSelector")
 local Base = import("rbxassetid://11389137937").Base
 local Assets = import("rbxassetid://5042114982").RemoteSpy
 
+-- Build a fallback RemoteLog row template if the asset folder doesn't include one.
+-- Needed children: .Calls (TextLabel), .Icon (ImageLabel), .Label (TextLabel)
+local remoteLogTemplate = Assets:FindFirstChild("RemoteLog")
+if not remoteLogTemplate then
+    remoteLogTemplate = Instance.new("ImageButton")
+    remoteLogTemplate.Name = "RemoteLog"
+    remoteLogTemplate.Size = UDim2.new(1, 0, 0, 24)
+    remoteLogTemplate.BackgroundTransparency = 1
+    remoteLogTemplate.ImageTransparency = 1
+    remoteLogTemplate.AutoButtonColor = false
+
+    local calls = Instance.new("TextLabel")
+    calls.Name = "Calls"
+    calls.Size = UDim2.new(0, 30, 1, 0)
+    calls.Position = UDim2.new(0, 0, 0, 0)
+    calls.BackgroundTransparency = 1
+    calls.Font = Enum.Font.SourceSans
+    calls.TextSize = 18
+    calls.TextColor3 = Color3.fromRGB(170, 170, 170)
+    calls.TextXAlignment = Enum.TextXAlignment.Left
+    calls.Text = "0"
+    calls.Parent = remoteLogTemplate
+
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 16, 0, 18)
+    icon.Position = UDim2.new(0, 30, 0.5, -9)
+    icon.BackgroundTransparency = 1
+    icon.Parent = remoteLogTemplate
+
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -51, 1, 0)
+    label.Position = UDim2.new(0, 51, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 18
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = remoteLogTemplate
+end
+
 local Prompts = Base.Prompts
 local Page = Base.Body.Pages.RemoteSpy
 
@@ -277,7 +319,7 @@ local ArgsLog = {}
 
 function Log.new(remote)
     local log = {}
-    local button = Assets.RemoteLog:Clone()
+    local button = remoteLogTemplate:Clone()
     local remoteInstance = remote.Instance
     local remoteInstanceName = remoteInstance.Name
     local remoteClassName = remoteInstance.ClassName
@@ -397,20 +439,35 @@ function ArgsLog.new(log, callInfo, prevArgs)
         instance.Visible = false
     end
 
-    -- Ensure a layout exists so AutomaticSize stacks children correctly
-    if not contents:FindFirstChildOfClass("UIListLayout") then
-        local layout = Instance.new("UIListLayout")
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.Padding = UDim.new(0, 2)
-        layout.Parent = contents
+    -- Remove any asset-provided UIListLayout/UIPadding so we start clean.
+    for _, child in ipairs(contents:GetChildren()) do
+        if child:IsA("UIListLayout") or child:IsA("UIPadding") then child:Destroy() end
     end
+    for _, child in ipairs(instance:GetChildren()) do
+        if child:IsA("UIPadding") then child:Destroy() end
+    end
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    layout.VerticalAlignment = Enum.VerticalAlignment.Top
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 2)
+    layout.Parent = contents
 
-    -- Let the pod shrink/grow to exactly fit its args — no manual maths needed
-    instance.Size = UDim2.new(instance.Size.X.Scale, instance.Size.X.Offset, 0, 0)
-    instance.AutomaticSize = Enum.AutomaticSize.Y
+    -- Fixed-pixel height so the pod never has extra whitespace.
+    -- RemoteArg rows from the asset are 20 px; UIListLayout adds 2 px between each.
+    local ARG_H, PAD_H = 20, 2
+    local hasTime = callInfo.time ~= nil
+    local argCount = math.max(#args, 1)
+    local podHeight = argCount * ARG_H
+                    + math.max(0, argCount - 1) * PAD_H
+                    + (hasTime and (14 + PAD_H) or 0)
+
+    instance.AutomaticSize = Enum.AutomaticSize.None
+    instance.Size = UDim2.new(instance.Size.X.Scale, instance.Size.X.Offset, 0, podHeight)
+    contents.AutomaticSize = Enum.AutomaticSize.None
     contents.Position = UDim2.new(0, 0, 0, 0)
-    contents.Size = UDim2.new(1, 0, 0, 0)
-    contents.AutomaticSize = Enum.AutomaticSize.Y
+    contents.Size = UDim2.new(1, 0, 0, podHeight)
 
     -- Timestamp label
     if callInfo.time then

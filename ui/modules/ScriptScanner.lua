@@ -240,7 +240,8 @@ ListRefresh.MouseButton1Click:Connect(function()
     addScripts()
 end)
 
-addScripts()
+-- Don't auto-scan on load — getGc() over the full GC heap is expensive.
+-- The user can trigger it manually via the Refresh button.
 
 InfoBack.MouseButton1Click:Connect(function()
     ScriptInfo.Visible = false

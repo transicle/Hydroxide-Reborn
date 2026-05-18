@@ -12,6 +12,10 @@ webImport("init")
 webImport("ui/main")
 ```
 
+## Preview
+
+<img width="682" height="355" alt="image" src="https://github.com/user-attachments/assets/4740535c-591a-4b17-a885-79cd7533bd28" />
+
 # [REBORN] Hydroxide
 Lua runtime introspection and network capturing tool for games on the Roblox engine. An optimized and updated version of the original project packed with new features.
 
